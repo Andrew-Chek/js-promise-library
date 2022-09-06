@@ -126,6 +126,95 @@ class MyPromise {
       throw result;
     })
   }
+
+  static resolve(value)
+  {
+    return new Promise(resolve => {
+      resolve(value)
+    })
+  }
+
+  static reject(value)
+  {
+    return new Promise((resolve, reject) => {
+      reject(value)
+    })
+  }
+
+  static all(promises)
+  {
+    const values = [];
+    let completedPromises = 0;
+    return new Promise((resolve, reject) => {
+      for(let i = 0; i < promises.length; i++)
+      {
+        const promise = promises[i];
+        promise.then(result => {
+          values[i] = result;
+          completedPromises += 1;
+          if(completedPromises === promises.length){
+            resolve(values)
+          }
+        }).catch(reject)
+      }
+    })
+  }
+
+  static allSettled(promises)
+  {
+    const results = [];
+    let completedPromises = 0;
+    return new Promise(resolve => {
+      for(let i = 0; i < promises.length; i++)
+      {
+        const promise = promises[i];
+        promise
+        .then(value => {
+          results[i] = {status: STATE.FULFILLED, value}
+        })
+        .catch(reason => {
+          results[i] = {status: STATE.REJECTED, reason}
+        })
+        .finally(() => {
+          completedPromises ++;
+          if(completedPromises === promises.length){
+            resolve(results)
+          }
+        })
+      }
+    })
+  }
+
+  static race(promises)
+  {
+    return new MyPromise((resolve, reject) => {
+      promises.forEach(promise => {
+        promise.then(resolve).catch(reject)
+      })
+    })
+  }
+
+  static any(promises)
+  {
+    const errors = [];
+    let rejectedPromises = 0;
+    return new Promise((resolve, reject) => {
+      for(let i = 0; i < promises.length; i++)
+      {
+        const promise = promises[i];
+        promise
+          .then(resolve)
+          .catch(value => {
+            rejectedPromises ++;
+            errors[i] = value
+            if(rejectedPromises === promises.length)
+            {
+              reject(new AggregateError(errors, 'all promises were rejected'))
+            }
+          })
+      }
+    })
+  }
 }
 
 class UncaughtPromiseError extends Error {
